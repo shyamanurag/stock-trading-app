@@ -140,5 +140,8 @@ const App = () => {
     </Provider>
   );
 };
+import AnalyticsDashboardPage from './pages/analytics/AnalyticsDashboardPage';
 
+// In your routing configuration
+<Route path="/analytics" element={<AnalyticsDashboardPage />} />
 export default App;
