@@ -60,3 +60,11 @@ setupListeners(store.dispatch);
 export const persistor = persistStore(store);
 
 export default store;
+import analyticsReducer from './slices/analyticsSlice';
+
+export const store = configureStore({
+  reducer: {
+    // Other reducers
+    analytics: analyticsReducer,
+  },
+});
