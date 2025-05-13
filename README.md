@@ -1,4 +1,17 @@
 Advanced Stock Market Trading Application
+Repository Information
+This repository contains the code for our Advanced Stock Market Trading Application. It was developed through a series of collaborative chat sessions focused on building a comprehensive trading platform.
+
+Repository URL: https://github.com/shyamanurag/stock-trading-app
+
+How to use this repository in future chat sessions:
+
+Simply share the repository URL with the assistant
+Reference specific files by their path (e.g., src/components/wallet/UserWallet.jsx)
+Request enhancements or modifications to existing components
+Continue building on the established foundation
+The code is organized in a modular structure, making it easy to extend and maintain as the project grows.
+
 Project Overview
 This is a high-performance stock market trading application with a Web Progressive Application (WPA) approach. The application supports NSE live data integration, comprehensive trading capabilities including futures and options, and is designed to support 10,000+ concurrent users.
 
@@ -407,3 +420,26 @@ Additional market data sources
 International market support
 Advanced derivatives analytics
 Paper trading simulation
+Development Progress Tracking
+This repository is regularly updated at the end of each development session. The README serves as a comprehensive log of what has been implemented and what remains to be built. Key milestones are marked with ✅ to indicate completion.
+
+Latest Update: May 13, 2025
+In our most recent development session, we successfully implemented:
+
+Wallet Management System ✅
+User wallet interface with balance and transaction display
+Multiple payment method integration
+Deposit and withdrawal functionality
+Transaction history with status tracking
+KYC Verification System ✅
+Document upload interface with preview
+Verification status tracking
+Admin review interface
+Status indicators throughout the application
+Admin Panel ✅
+Dashboard with key metrics
+User management interface
+KYC verification review
+Wallet administration tools
+These components represent a significant step forward in the application's capabilities, particularly in terms of financial operations and regulatory compliance.
+
