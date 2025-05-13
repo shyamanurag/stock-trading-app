@@ -1,0 +1,633 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription, 
+  CardFooter 
+} from "@/components/ui/card";
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  AlertCircle,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Code,
+  CopyPlus,
+  Edit,
+  ExternalLink,
+  Filter,
+  GitBranch,
+  GitFork,
+  Info,
+  Layers,
+  Link,
+  List,
+  Loader,
+  PlusCircle,
+  Save,
+  Settings,
+  Share2,
+  Trash2,
+  X,
+  Zap,
+  TrendingUp,
+  TrendingDown,
+  Repeat,
+  Activity
+} from 'lucide-react';
+
+// Import rule components
+import TradingRuleBuilder from './TradingRuleBuilder';
+import AlgorithmBacktestResults from './AlgorithmBacktestResults';
+import SignalTester from './SignalTester';
+import ExecutionSettings from './ExecutionSettings';
+
+// Algorithmic Trading Builder component
+const AlgorithmicTradingBuilder = () => {
+  const [activeTab, setActiveTab] = useState("rules");
+  const [algorithm, setAlgorithm] = useState({
+    id: null,
+    name: "New Trading Algorithm",
+    description: "",
+    rules: [],
+    entryConditions: [],
+    exitConditions: [],
+    riskManagement: {
+      maxPositionSize: 5, // % of portfolio
+      stopLoss: 5, // % from entry
+      takeProfit: 15, // % from entry
+      trailingStop: false,
+      trailingStopDistance: 3, // %
+    },
+    execution: {
+      enabled: false,
+      orderType: "market", // market, limit
+      timeBetweenTrades: 5, // minutes
+      maxDailyTrades: 10,
+      tradingHours: {
+        start: "09:30",
+        end: "16:00"
+      },
+      daysToTrade: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    },
+    status: "draft" // draft, active, paused, backtest
+  });
+  
+  const [templates, setTemplates] = useState([
+    {
+      id: "trend-following",
+      name: "Trend Following Strategy",
+      description: "Enter trades in the direction of the prevailing trend using moving averages and momentum indicators",
+      category: "Technical"
+    },
+    {
+      id: "mean-reversion",
+      name: "Mean Reversion Strategy",
+      description: "Enter trades when prices move significantly away from their historical average, expecting a return to normal levels",
+      category: "Technical"
+    },
+    {
+      id: "volatility-breakout",
+      name: "Volatility Breakout Strategy",
+      description: "Enter trades when price breaks out of a period of low volatility, signaling the start of a potential trend",
+      category: "Technical"
+    },
+    {
+      id: "momentum",
+      name: "Momentum Strategy",
+      description: "Enter trades in the direction of strong price momentum, using indicators like RSI, MACD, and rate-of-change",
+      category: "Technical"
+    },
+    {
+      id: "earnings-announcement",
+      name: "Earnings Announcement Strategy",
+      description: "Trade based on expected market reactions before or after earnings announcements",
+      category: "Fundamental"
+    }
+  ]);
+  
+  const [backtestResults, setBacktestResults] = useState(null);
+  const [isBacktesting, setIsBacktesting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Handle template selection
+  const applyTemplate = (templateId) => {
+    const selected = templates.find(t => t.id === templateId);
+    if (!selected) return;
+    
+    // In a real app, we would fetch the actual template rules
+    // For now, we'll simulate with some example rules
+    
+    let rules = [];
+    let entryConditions = [];
+    let exitConditions = [];
+    
+    if (templateId === "trend-following") {
+      entryConditions = [
+        { id: "1", type: "indicator", indicator: "SMA", parameters: { period: 50 }, operator: "crossover", value: "SMA", valueParameters: { period: 200 }, isSatisfied: false },
+        { id: "2", type: "indicator", indicator: "RSI", parameters: { period: 14 }, operator: ">", value: 50, isSatisfied: false }
+      ];
+      
+      exitConditions = [
+        { id: "1", type: "indicator", indicator: "SMA", parameters: { period: 50 }, operator: "crossunder", value: "SMA", valueParameters: { period: 200 }, isSatisfied: false },
+        { id: "2", type: "stopLoss", value: 5, isSatisfied: false },
+        { id: "3", type: "takeProfit", value: 15, isSatisfied: false }
+      ];
+    } 
+    else if (templateId === "mean-reversion") {
+      entryConditions = [
+        { id: "1", type: "indicator", indicator: "Bollinger Bands", parameters: { period: 20, stdDev: 2 }, operator: "price_below_lower", isSatisfied: false },
+        { id: "2", type: "indicator", indicator: "RSI", parameters: { period: 14 }, operator: "<", value: 30, isSatisfied: false }
+      ];
+      
+      exitConditions = [
+        { id: "1", type: "indicator", indicator: "Bollinger Bands", parameters: { period: 20, stdDev: 2 }, operator: "price_above_middle", isSatisfied: false },
+        { id: "2", type: "barCount", value: 10, isSatisfied: false },
+        { id: "3", type: "stopLoss", value: 3, isSatisfied: false }
+      ];
+    }
+    else if (templateId === "volatility-breakout") {
+      entryConditions = [
+        { id: "1", type: "indicator", indicator: "ATR", parameters: { period: 14 }, operator: ">", value: "ATR", valueParameters: { period: 14, multiplier: 1.5, lookback: 5 }, isSatisfied: false },
+        { id: "2", type: "priceAction", action: "breakout", parameters: { period: 20 }, isSatisfied: false }
+      ];
+      
+      exitConditions = [
+        { id: "1", type: "barCount", value: 5, isSatisfied: false },
+        { id: "2", type: "indicator", indicator: "ATR", parameters: { period: 14 }, operator: "<", value: "ATR", valueParameters: { period: 14, lookback: 5 }, isSatisfied: false },
+        { id: "3", type: "stopLoss", value: 8, isSatisfied: false },
+        { id: "4", type: "takeProfit", value: 24, isSatisfied: false }
+      ];
+    }
+    
+    setAlgorithm({
+      ...algorithm,
+      name: selected.name,
+      description: selected.description,
+      entryConditions,
+      exitConditions,
+      rules
+    });
+  };
+  
+  // Run backtest
+  const runBacktest = async () => {
+    if (algorithm.entryConditions.length === 0) {
+      alert("Please add at least one entry condition before backtesting");
+      return;
+    }
+    
+    setIsBacktesting(true);
+    
+    try {
+      // In a real app, this would call an API to run the backtest
+      // For demo purposes, we'll simulate a delay and generate mock results
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      
+      // Generate mock backtest results
+      const results = generateMockBacktestResults();
+      setBacktestResults(results);
+      
+      // Set algorithm status to backtested
+      setAlgorithm({
+        ...algorithm,
+        status: "backtest"
+      });
+    } catch (error) {
+      console.error("Backtest error:", error);
+      // Handle error
+    } finally {
+      setIsBacktesting(false);
+    }
+  };
+  
+  // Save algorithm
+  const saveAlgorithm = async () => {
+    if (!algorithm.name) {
+      alert("Please give your algorithm a name");
+      return;
+    }
+    
+    setIsSaving(true);
+    
+    try {
+      // In a real app, this would call an API to save the algorithm
+      // For demo purposes, we'll simulate a delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Simulate getting an ID from the server if it's a new algorithm
+      if (!algorithm.id) {
+        setAlgorithm({
+          ...algorithm,
+          id: `algo-${Date.now()}`
+        });
+      }
+      
+      // Success toast or notification would go here
+    } catch (error) {
+      console.error("Save error:", error);
+      // Handle error
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  // Activate algorithm for live trading
+  const activateAlgorithm = () => {
+    // In a real app, this would trigger a confirmation dialog
+    // and then enable live trading through an API call
+    
+    setAlgorithm({
+      ...algorithm,
+      status: algorithm.status === "active" ? "paused" : "active",
+      execution: {
+        ...algorithm.execution,
+        enabled: algorithm.status !== "active"
+      }
+    });
+  };
+  
+  // Generate mock backtest results
+  const generateMockBacktestResults = () => {
+    const startDate = "2024-01-01";
+    const endDate = "2025-04-30";
+    
+    // Generate daily equity values with some randomness but an overall trend
+    const equityCurveData = [];
+    let equity = 10000; // Starting capital
+    const days = Math.round((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+    
+    for (let i = 0; i < days; i++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + i);
+      
+      // Random daily return with slight positive bias
+      const dailyReturn = (Math.random() * 4 - 1.5) / 100;
+      equity = equity * (1 + dailyReturn);
+      
+      equityCurveData.push({
+        date: date.toISOString().split('T')[0],
+        equity
+      });
+    }
+    
+    // Generate trades
+    const trades = [];
+    const numTrades = 35;
+    
+    for (let i = 0; i < numTrades; i++) {
+      const entry = new Date(startDate);
+      entry.setDate(entry.getDate() + Math.floor(Math.random() * days));
+      
+      const holdingPeriod = Math.floor(Math.random() * 10) + 1;
+      const exit = new Date(entry);
+      exit.setDate(exit.getDate() + holdingPeriod);
+      
+      const profitLoss = (Math.random() * 2 - 0.7) * 2; // % gain/loss, slightly positive
+      
+      trades.push({
+        id: i + 1,
+        symbol: ['AAPL', 'MSFT', 'GOOG', 'AMZN', 'NVDA'][Math.floor(Math.random() * 5)],
+        entry: entry.toISOString().split('T')[0],
+        exit: exit.toISOString().split('T')[0],
+        entryPrice: (100 + Math.random() * 20).toFixed(2),
+        exitPrice: 0, // Calculated below
+        quantity: Math.floor(Math.random() * 50) + 10,
+        profitLoss: profitLoss,
+        profitLossAmount: 0, // Calculated below
+        type: Math.random() > 0.5 ? 'long' : 'short'
+      });
+      
+      // Calculate exit price and profit amount
+      const trade = trades[trades.length - 1];
+      const direction = trade.type === 'long' ? 1 : -1;
+      trade.exitPrice = (parseFloat(trade.entryPrice) * (1 + (direction * profitLoss / 100))).toFixed(2);
+      trade.profitLossAmount = (direction * (trade.exitPrice - trade.entryPrice) * trade.quantity).toFixed(2);
+    }
+    
+    // Overall metrics
+    const finalEquity = equityCurveData[equityCurveData.length - 1].equity;
+    const totalReturn = ((finalEquity / 10000) - 1) * 100;
+    
+    const winningTrades = trades.filter(t => parseFloat(t.profitLossAmount) > 0);
+    const losingTrades = trades.filter(t => parseFloat(t.profitLossAmount) <= 0);
+    
+    // Calculate max drawdown
+    let maxDrawdown = 0;
+    let peak = 0;
+    
+    equityCurveData.forEach(point => {
+      if (point.equity > peak) {
+        peak = point.equity;
+      }
+      
+      const drawdown = (peak - point.equity) / peak * 100;
+      if (drawdown > maxDrawdown) {
+        maxDrawdown = drawdown;
+      }
+    });
+    
+    return {
+      startDate,
+      endDate,
+      initialCapital: 10000,
+      finalEquity,
+      totalReturn,
+      annualizedReturn: (Math.pow((finalEquity / 10000), (365 / days)) - 1) * 100,
+      maxDrawdown,
+      sharpeRatio: (totalReturn / 100) / (maxDrawdown / 100) * 0.5,
+      trades,
+      winRate: (winningTrades.length / trades.length) * 100,
+      averageWin: winningTrades.length > 0 ? 
+        winningTrades.reduce((sum, t) => sum + parseFloat(t.profitLossAmount), 0) / winningTrades.length : 0,
+      averageLoss: losingTrades.length > 0 ? 
+        losingTrades.reduce((sum, t) => sum + parseFloat(t.profitLossAmount), 0) / losingTrades.length : 0,
+      profitFactor: losingTrades.length > 0 ? 
+        Math.abs(winningTrades.reduce((sum, t) => sum + parseFloat(t.profitLossAmount), 0) / 
+                 losingTrades.reduce((sum, t) => sum + parseFloat(t.profitLossAmount), 0)) : 0,
+      equityCurve: equityCurveData
+    };
+  };
+  
+  // Handle entry/exit condition changes
+  const updateEntryConditions = (conditions) => {
+    setAlgorithm({
+      ...algorithm,
+      entryConditions: conditions
+    });
+  };
+  
+  const updateExitConditions = (conditions) => {
+    setAlgorithm({
+      ...algorithm,
+      exitConditions: conditions
+    });
+  };
+  
+  // Handle risk management changes
+  const updateRiskManagement = (riskSettings) => {
+    setAlgorithm({
+      ...algorithm,
+      riskManagement: riskSettings
+    });
+  };
+  
+  // Handle execution settings changes
+  const updateExecutionSettings = (executionSettings) => {
+    setAlgorithm({
+      ...algorithm,
+      execution: executionSettings
+    });
+  };
+  
+  return (
+    <div className="container mx-auto py-6">
+      <div className="flex flex-col space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={algorithm.name}
+                onChange={(e) => setAlgorithm({...algorithm, name: e.target.value})}
+                className="text-2xl font-bold bg-transparent border-0 border-b border-transparent hover:border-gray-300 focus:border-primary focus:ring-0 p-0 w-full"
+                placeholder="Algorithm Name"
+              />
+              <Badge variant={
+                algorithm.status === "active" ? "success" : 
+                algorithm.status === "paused" ? "warning" :
+                algorithm.status === "backtest" ? "secondary" : "outline"
+              }>
+                {algorithm.status === "active" ? "Active" : 
+                 algorithm.status === "paused" ? "Paused" :
+                 algorithm.status === "backtest" ? "Backtested" : "Draft"}
+              </Badge>
+            </div>
+            <Textarea
+              value={algorithm.description}
+              onChange={(e) => setAlgorithm({...algorithm, description: e.target.value})}
+              placeholder="Add a description for your trading algorithm..."
+              className="mt-2 resize-none border-0 focus:ring-0 p-0 text-gray-500 text-sm h-8 hover:h-24 transition-all"
+            />
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <div>
+              <Select onValueChange={applyTemplate}>
+                <SelectTrigger className="w-[220px]">
+                  <SelectValue placeholder="Apply Template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Technical Strategies</SelectLabel>
+                    {templates.filter(t => t.category === "Technical").map(template => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Fundamental Strategies</SelectLabel>
+                    {templates.filter(t => t.category === "Fundamental").map(template => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <Button 
+              variant="outline" 
+              onClick={saveAlgorithm}
+              disabled={isSaving}
+            >
+              {isSaving ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              Save
+            </Button>
+            
+            <Button
+              variant="outline"
+              onClick={runBacktest}
+              disabled={isBacktesting || algorithm.entryConditions.length === 0}
+            >
+              {isBacktesting ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <GitFork className="h-4 w-4 mr-2" />}
+              Run Backtest
+            </Button>
+            
+            <Button
+              variant={algorithm.status === "active" ? "destructive" : "default"}
+              onClick={activateAlgorithm}
+              disabled={algorithm.status !== "backtest" && algorithm.status !== "active" && algorithm.status !== "paused"}
+            >
+              {algorithm.status === "active" ? (
+                <>
+                  <X className="h-4 w-4 mr-2" />
+                  Stop Algorithm
+                </>
+              ) : (
+                <>
+                  <Zap className="h-4 w-4 mr-2" />
+                  {algorithm.status === "paused" ? "Resume Algorithm" : "Activate Algorithm"}
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+        
+        <Separator />
+        
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="rules" className="flex items-center">
+              <List className="h-4 w-4 mr-2" />
+              Trading Rules
+            </TabsTrigger>
+            <TabsTrigger value="testing" className="flex items-center">
+              <GitBranch className="h-4 w-4 mr-2" />
+              Backtest & Signals
+            </TabsTrigger>
+            <TabsTrigger value="execution" className="flex items-center">
+              <Settings className="h-4 w-4 mr-2" />
+              Execution Settings
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" className="flex items-center">
+              <Activity className="h-4 w-4 mr-2" />
+              Monitoring
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* Trading Rules Tab */}
+          <TabsContent value="rules">
+            <TradingRuleBuilder
+              entryConditions={algorithm.entryConditions}
+              exitConditions={algorithm.exitConditions}
+              riskManagement={algorithm.riskManagement}
+              onEntryConditionsChange={updateEntryConditions}
+              onExitConditionsChange={updateExitConditions}
+              onRiskManagementChange={updateRiskManagement}
+            />
+          </TabsContent>
+          
+          {/* Backtest Tab */}
+          <TabsContent value="testing">
+            {backtestResults ? (
+              <AlgorithmBacktestResults results={backtestResults} />
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center p-12">
+                  <div className="text-center max-w-md">
+                    <GitBranch className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-lg font-medium mb-2">No Backtest Results</h3>
+                    <p className="text-gray-500 mb-4">
+                      Run a backtest to see how your algorithm would have performed historically.
+                    </p>
+                    <Button 
+                      onClick={runBacktest}
+                      disabled={isBacktesting || algorithm.entryConditions.length === 0}
+                    >
+                      {isBacktesting ? (
+                        <>
+                          <Loader className="h-4 w-4 mr-2 animate-spin" />
+                          Running Backtest...
+                        </>
+                      ) : (
+                        <>
+                          <GitFork className="h-4 w-4 mr-2" />
+                          Run Backtest
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            <div className="mt-6">
+              <SignalTester algorithm={algorithm} />
+            </div>
+          </TabsContent>
+          
+          {/* Execution Settings Tab */}
+          <TabsContent value="execution">
+            <ExecutionSettings
+              settings={algorithm.execution}
+              onSettingsChange={updateExecutionSettings}
+              status={algorithm.status}
+            />
+          </TabsContent>
+          
+          {/* Monitoring Tab */}
+          <TabsContent value="monitoring">
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-12">
+                <div className="text-center max-w-md">
+                  <Activity className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-medium mb-2">Algorithm Monitoring</h3>
+                  <p className="text-gray-500 mb-4">
+                    Real-time monitoring will be available once the algorithm is activated.
+                  </p>
+                  <Button
+                    variant={algorithm.status === "active" ? "destructive" : "default"}
+                    onClick={activateAlgorithm}
+                    disabled={algorithm.status !== "backtest" && algorithm.status !== "active" && algorithm.status !== "paused"}
+                  >
+                    {algorithm.status === "active" ? (
+                      <>
+                        <X className="h-4 w-4 mr-2" />
+                        Stop Algorithm
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4 mr-2" />
+                        {algorithm.status === "paused" ? "Resume Algorithm" : "Activate Algorithm"}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+};
+
+export default AlgorithmicTradingBuilder;
