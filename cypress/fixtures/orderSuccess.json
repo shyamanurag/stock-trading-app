@@ -1,0 +1,13 @@
+// cypress/fixtures/orderSuccess.json
+{
+  "id": "ord_123456789",
+  "status": "PENDING",
+  "symbol": "AAPL",
+  "orderType": "MARKET",
+  "side": "BUY",
+  "quantity": 10,
+  "price": null,
+  "filledQuantity": 0,
+  "remainingQuantity": 10,
+  "createdAt": "2025-05-13T10:30:45Z"
+}
