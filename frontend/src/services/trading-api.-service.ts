@@ -546,4 +546,20 @@ class TradingApiService {
   }
   
   private handleError(error: any): ApiResponse<any> {
-    if (error.response?.data)
+    if (error.response?.data) {
+      // If the server returned a response with an error
+      return error.response.data as ApiResponse<any>;
+    }
+    
+    // Generic error
+    return {
+      data: null,
+      success: false,
+      error: error.message || 'An unexpected error occurred'
+    };
+  }
+}
+
+// Export a singleton instance
+export const tradingApiService = new TradingApiService();
+export default tradingApiService;
