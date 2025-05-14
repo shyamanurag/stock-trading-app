@@ -1,0 +1,42 @@
+// cypress/fixtures/userPortfolio.json
+{
+  "totalValue": 125650.75,
+  "cashBalance": 15000.50,
+  "dayChange": 1250.25,
+  "dayChangePercent": 1.05,
+  "holdings": [
+    {
+      "symbol": "AAPL",
+      "quantity": 100,
+      "averagePrice": 155.30,
+      "currentPrice": 175.25,
+      "marketValue": 17525.00,
+      "dayChange": 215.00,
+      "dayChangePercent": 1.24,
+      "totalGain": 1995.00,
+      "totalGainPercent": 12.85
+    },
+    {
+      "symbol": "MSFT",
+      "quantity": 75,
+      "averagePrice": 280.15,
+      "currentPrice": 305.50,
+      "marketValue": 22912.50,
+      "dayChange": 187.50,
+      "dayChangePercent": 0.82,
+      "totalGain": 1900.50,
+      "totalGainPercent": 9.05
+    },
+    {
+      "symbol": "GOOGL",
+      "quantity": 50,
+      "averagePrice": 1250.00,
+      "currentPrice": 1375.25,
+      "marketValue": 68762.50,
+      "dayChange": 825.00,
+      "dayChangePercent": 1.21,
+      "totalGain": 6262.50,
+      "totalGainPercent": 10.02
+    }
+  ]
+}
