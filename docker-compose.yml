@@ -1,0 +1,182 @@
+version: '3.8'
+
+services:
+  # Frontend service (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: builder # Use the development stage for local development
+      args:
+        ENVIRONMENT: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://backend:8080
+      - NEXT_PUBLIC_WEBSOCKET_URL=ws://backend:8080/ws
+    depends_on:
+      - backend
+    command: npm run dev
+    networks:
+      - app-network
+
+  # Backend service (Go)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: builder # Use the development stage for local development
+      args:
+        ENVIRONMENT: development
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+      - /app/go/pkg
+    environment:
+      - GO_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=trading_dev
+      - JWT_SECRET=local-development-secret
+      - RUST_SERVICE_URL=http://rust-services:8081
+      - CPP_SERVICE_URL=http://cpp-components:8083
+    depends_on:
+      - postgres
+      - rust-services
+      - cpp-components
+    command: go run cmd/server/main.go
+    networks:
+      - app-network
+
+  # Rust services
+  rust-services:
+    build:
+      context: ./rust-services
+      dockerfile: Dockerfile
+      target: builder # Use the development stage for local development
+      args:
+        ENVIRONMENT: development
+    ports:
+      - "8081:8081"
+      - "8082:8082"
+    volumes:
+      - ./rust-services:/app
+      - /app/target
+    environment:
+      - RUST_ENV=development
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trading_dev
+      - CPP_SERVICE_URL=http://cpp-components:8083
+    depends_on:
+      - postgres
+    command: cargo watch -x run
+    networks:
+      - app-network
+
+  # C++ components
+  cpp-components:
+    build:
+      context: ./cpp-components
+      dockerfile: Dockerfile
+      target: builder # Use the development stage for local development
+      args:
+        ENVIRONMENT: development
+    ports:
+      - "8083:8083"
+      - "8084:8084"
+    volumes:
+      - ./cpp-components:/app
+      - /app/build
+    environment:
+      - BUILD_ENV=development
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trading_dev
+    depends_on:
+      - postgres
+    command: sh -c "cd /app/build && ./bin/market-data-processor"
+    networks:
+      - app-network
+
+  # Database
+  postgres:
+    image: postgres:14-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=trading_dev
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Database migrations
+  db-migrations:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: builder
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=trading_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: go run cmd/migrator/main.go migrate
+    networks:
+      - app-network
+    restart: on-failure
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
+volumes:
+  postgres-data:
+  redis-data:
+  pgadmin-data:
+
+networks:
+  app-network:
+    driver: bridge
