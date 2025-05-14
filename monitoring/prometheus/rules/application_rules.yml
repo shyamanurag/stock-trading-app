@@ -1,0 +1,132 @@
+# Application-specific alert rules
+
+groups:
+- name: ApplicationAlerts
+  rules:
+  # Frontend alerts
+  - alert: HighErrorRate
+    expr: sum(rate(http_requests_total{status=~"5.."}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service) > 0.05
+    for: 5m
+    labels:
+      severity: critical
+      category: application
+    annotations:
+      summary: "High error rate detected for {{ $labels.service }}"
+      description: "Error rate is above 5% for the last 5 minutes"
+      dashboard_id: "frontend-overview"
+
+  - alert: SlowResponseTime
+    expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)) > 2
+    for: 5m
+    labels:
+      severity: warning
+      category: application
+    annotations:
+      summary: "Slow response time detected for {{ $labels.service }}"
+      description: "95th percentile of response time is above 2 seconds for the last 5 minutes"
+      dashboard_id: "frontend-performance"
+
+  # Backend API alerts
+  - alert: APIHighErrorRate
+    expr: sum(rate(api_requests_total{status=~"5.."}[5m])) by (endpoint) / sum(rate(api_requests_total[5m])) by (endpoint) > 0.05
+    for: 5m
+    labels:
+      severity: critical
+      category: application
+    annotations:
+      summary: "High API error rate detected for {{ $labels.endpoint }}"
+      description: "API error rate is above 5% for the last 5 minutes"
+      dashboard_id: "backend-overview"
+
+  - alert: APISlowResponseTime
+    expr: histogram_quantile(0.95, sum(rate(api_request_duration_seconds_bucket[5m])) by (le, endpoint)) > 1
+    for: 5m
+    labels:
+      severity: warning
+      category: application
+    annotations:
+      summary: "Slow API response time detected for {{ $labels.endpoint }}"
+      description: "95th percentile of API response time is above 1 second for the last 5 minutes"
+      dashboard_id: "backend-performance"
+
+  # WebSocket alerts
+  - alert: WebSocketConnectionDrop
+    expr: delta(websocket_connections_total[5m]) < -10
+    for: 2m
+    labels:
+      severity: warning
+      category: application
+    annotations:
+      summary: "WebSocket connections dropping"
+      description: "WebSocket connections have dropped by more than 10 in the last 5 minutes"
+      dashboard_id: "websocket-overview"
+
+  # Database alerts
+  - alert: DatabaseConnectionsHigh
+    expr: max_over_time(pg_stat_activity_count[5m]) > 100
+    for: 5m
+    labels:
+      severity: warning
+      category: database
+    annotations:
+      summary: "High number of database connections"
+      description: "Database connections are above 100 for the last 5 minutes"
+      dashboard_id: "database-overview"
+
+  - alert: SlowDatabaseQueries
+    expr: histogram_quantile(0.95, sum(rate(db_query_duration_seconds_bucket[5m])) by (le, query_type)) > 0.5
+    for: 5m
+    labels:
+      severity: warning
+      category: database
+    annotations:
+      summary: "Slow database queries detected for {{ $labels.query_type }}"
+      description: "95th percentile of database query time is above 0.5 seconds for the last 5 minutes"
+      dashboard_id: "database-performance"
+
+  # Redis alerts
+  - alert: RedisHighMemoryUsage
+    expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+    for: 5m
+    labels:
+      severity: warning
+      category: redis
+    annotations:
+      summary: "Redis memory usage is high"
+      description: "Redis memory usage is above 80% for the last 5 minutes"
+      dashboard_id: "redis-overview"
+
+  # Services health
+  - alert: ServiceDown
+    expr: up == 0
+    for: 1m
+    labels:
+      severity: critical
+      category: service
+    annotations:
+      summary: "Service {{ $labels.job }} is down"
+      description: "Service {{ $labels.job }} has been down for more than 1 minute"
+      dashboard_id: "service-health"
+
+  # Application-specific business metrics
+  - alert: LowTradingVolume
+    expr: sum(rate(trading_volume_total[10m])) < 10
+    for: 10m
+    labels:
+      severity: warning
+      category: business
+    annotations:
+      summary: "Low trading volume detected"
+      description: "Trading volume is below expected threshold for the last 10 minutes"
+      dashboard_id: "business-metrics"
+
+  - alert: HighOrderFailureRate
+    expr: sum(rate(order_failure_total[5m])) / sum(rate(order_total[5m])) > 0.05
+    for: 5m
+    labels:
+      severity: critical
+      category: business
+    annotations:
+      summary: "High order failure rate detected"
+      description: "Order failure rate is above 5% for the last 5 minutes"
+      dashboard_id: "order-performance"
