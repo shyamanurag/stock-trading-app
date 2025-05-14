@@ -1,0 +1,105 @@
+# .github/workflows/ci.yml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+      - name: Lint
+        working-directory: ./frontend
+        run: npm run lint
+      - name: Test
+        working-directory: ./frontend
+        run: npm test
+
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+      - name: Install dependencies
+        working-directory: ./backend
+        run: go mod download
+      - name: Test
+        working-directory: ./backend
+        run: go test ./... -v
+
+  e2e-tests:
+    needs: [test-frontend, test-backend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+      - name: Setup PostgreSQL
+        uses: harmon758/postgresql-action@v1
+        with:
+          postgresql version: '14'
+          postgresql db: 'trading_test'
+          postgresql user: 'test_user'
+          postgresql password: 'test_password'
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: go mod download
+      - name: Run backend in background
+        working-directory: ./backend
+        run: |
+          cp .env.test .env
+          go run cmd/server/main.go &
+          sleep 10
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+      - name: Run E2E tests
+        working-directory: ./frontend
+        run: npm run cypress:run
+
+  deploy-staging:
+    if: github.ref == 'refs/heads/develop'
+    needs: [e2e-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to staging
+        run: |
+          echo "Deploying to staging environment..."
+          # Add your deployment script or commands here
+
+  deploy-production:
+    if: github.ref == 'refs/heads/main'
+    needs: [e2e-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production environment..."
+          # Add your deployment script or commands here
