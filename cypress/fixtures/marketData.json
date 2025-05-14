@@ -1,0 +1,18 @@
+// cypress/fixtures/marketData.json
+{
+  "symbol": "AAPL",
+  "lastPrice": 175.25,
+  "change": 2.15,
+  "changePercent": 1.24,
+  "open": 173.10,
+  "high": 176.30,
+  "low": 172.85,
+  "volume": 42567890,
+  "marketCap": 2850000000000,
+  "peRatio": 28.5,
+  "dividendYield": 0.62,
+  "bid": 175.20,
+  "ask": 175.30,
+  "bidSize": 1200,
+  "askSize": 800
+}
