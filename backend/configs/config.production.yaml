@@ -1,0 +1,68 @@
+# Backend environment variables for production
+# config.production.yaml
+
+environment: production
+server:
+  port: 8080
+  host: 0.0.0.0
+  cors:
+    allowedOrigins:
+      - https://yourtradingapp.com
+    allowCredentials: true
+  rateLimiting:
+    enabled: true
+    requestsPerMinute: 200
+
+database:
+  host: ${DB_HOST}
+  port: ${DB_PORT}
+  user: ${DB_USER}
+  password: ${DB_PASSWORD}
+  name: ${DB_NAME}
+  sslMode: require
+  maxOpenConnections: 50
+  maxIdleConnections: 20
+  connectionTimeout: 30s
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiresIn: 24h
+  refreshExpiresIn: 168h
+
+redis:
+  host: ${REDIS_HOST}
+  port: ${REDIS_PORT}
+  password: ${REDIS_PASSWORD}
+  database: 0
+
+services:
+  marketData:
+    url: http://rust-services:8081
+    timeout: 5s
+  algorithmicTrading:
+    url: http://rust-services:8082
+    timeout: 10s
+  optionsPricing:
+    url: http://cpp-components:8083
+    timeout: 5s
+
+logging:
+  level: warn
+  format: json
+
+metrics:
+  enabled: true
+  prometheus:
+    enabled: true
+    endpoint: /metrics
+
+websocket:
+  maxConnections: 10000
+  messageBufferSize: 256
+  pingInterval: 30s
+  pingTimeout: 10s
+
+features:
+  algorithmicTrading: true
+  optionsStrategyBuilder: true
+  mockData: false
