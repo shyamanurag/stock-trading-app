@@ -1,4 +1,4 @@
-// Path: stock-trading-app/frontend/src/components/trading/TradingDashboard.tsx
+// stock-trading-app/frontend/src/components/trading/TradingDashboard.tsx
 
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
